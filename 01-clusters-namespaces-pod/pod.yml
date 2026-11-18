@@ -1,0 +1,38 @@
+# =============================================================================
+# pod.yml  -  a single, unmanaged Pod (used in lab step 3)
+# =============================================================================
+# Used with:   kubectl apply -f pod.yml
+#
+# A Pod is the smallest deployable unit: one or more containers that share
+# a network identity and run together on one node.
+#
+# KEY LESSON 1: this Pod is "naked". No controller owns it. If it is deleted
+# or its node dies, nothing recreates it. Compare with deploy.yml, where a
+# Deployment keeps the desired number of pods alive.
+#
+# KEY LESSON 2: the manifest says `namespace: lab`, so the pod is created
+# there no matter which namespace your kubectl context points at. But
+# `kubectl get pods` only looks in your CURRENT namespace, so it can show
+# nothing even though the pod exists. The lab walks you through this.
+#
+# EXPECT:
+#   - `kubectl get pods -n lab` shows web-pod Running after a few seconds
+#     (first time takes longer: the nginx image must be pulled).
+#   - After `kubectl delete pod web-pod -n lab` it is gone for good.
+# =============================================================================
+apiVersion: v1          # Pods live in the core API group ("v1")
+kind: Pod
+metadata:
+  name: web-pod         # unique name within the namespace
+  namespace: lab        # the namespace must exist first (namespace.yml)
+  labels:
+    app: web            # labels are key/value tags. Services and controllers
+                        # find pods by matching labels, not by name.
+spec:
+  containers:
+  - name: nginx         # container name, unique within the pod
+    image: nginx:1.25   # always pin a version tag; avoid ":latest" so you
+                        # know exactly what runs (and so updates are explicit)
+    ports:
+    - containerPort: 80 # informational: the port nginx listens on. It does
+                        # not publish anything by itself; Services do that.

@@ -1,0 +1,31 @@
+# =============================================================================
+# namespace.yml  -  the "lab" Namespace (Session 1 step 2; also used to bootstrap Sessions 2 and 3)
+# =============================================================================
+# Used with:   kubectl apply -f namespace.yml
+#
+# A Namespace is a named partition INSIDE one cluster. Most objects (pods,
+# deployments, services, configmaps...) live in exactly one namespace.
+# Namespaces give you:
+#   - separation: the same object name can exist in two namespaces
+#   - tidy cleanup: deleting a namespace deletes everything inside it
+#   - a scope for access rules and resource quotas (not covered here)
+#
+# Namespaces do NOT isolate the network by default: a pod in one namespace
+# can still reach a Service in another (by DNS name or IP).
+#
+# Not everything is namespaced. Nodes, Namespaces themselves and
+# PersistentVolumes are cluster-wide. (`kubectl api-resources --namespaced=false`)
+#
+# Built-in namespaces in every cluster:
+#   default          where objects go if you specify nothing
+#   kube-system      Kubernetes' own components (DNS, proxy, ...)
+#   kube-public      readable by everyone; rarely used
+#   kube-node-lease  node heartbeats
+#   (kind also adds local-path-storage)
+#
+# EXPECT: `namespace/lab created`, then `kubectl get ns` lists it as Active.
+# =============================================================================
+apiVersion: v1          # Namespaces are part of the core API group
+kind: Namespace
+metadata:
+  name: lab             # all lab workloads are placed here

@@ -1,0 +1,53 @@
+# =============================================================================
+# svc.yml  -  a NodePort Service (used in lab step 6)
+# =============================================================================
+# Used with:   kubectl apply -f svc.yml
+#
+# Pods are ephemeral: their IPs change every time they are recreated. A
+# Service gives them one stable virtual IP and DNS name, and load-balances
+# across all READY pods matching its selector.
+#
+# Service types (each builds on the previous):
+#   ClusterIP    reachable only inside the cluster (default)
+#   NodePort     ClusterIP + a fixed port opened on every node  <-- this file
+#   LoadBalancer NodePort + an external load balancer (cloud providers)
+#
+# Traffic path in this lab:
+#   your browser -> localhost:30001 -> kind node container:30001
+#     -> Service (port 80) -> one of the ready pods (targetPort 80)
+#
+# NAMESPACES AND SERVICES:
+#   - The selector only matches pods in the Service's OWN namespace.
+#   - Inside the cluster the Service gets a DNS name:
+#         web-svc                        (from a pod in namespace "lab")
+#         web-svc.lab                    (from a pod in any namespace)
+#         web-svc.lab.svc.cluster.local  (fully qualified)
+#   - A NodePort is cluster-wide: no two Services, in ANY namespace, can use
+#     30001 at the same time.
+#
+# EXPECT:
+#   - `kubectl get svc` shows web-svc, TYPE NodePort, PORT(S) 80:30001/TCP
+#   - `curl localhost:30001` returns the "Welcome to nginx!" HTML page
+#   - `kubectl get endpointslices` lists one IP per ready pod
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-svc
+  namespace: lab         # must be the same namespace as the pods it targets
+spec:
+  type: NodePort
+
+  # Send traffic to every READY pod carrying this label. This is what links
+  # the Service to the Deployment: no direct reference, only matching labels.
+  # If the label here does not match, the Service has zero endpoints and
+  # requests fail.
+  selector:
+    app: web
+
+  ports:
+  - port: 80             # port of the Service's virtual (ClusterIP) address
+    targetPort: 80       # port on the pod (the container's containerPort)
+    nodePort: 30001      # port opened on every node. Allowed range 30000-32767.
+                         # Must match hostPort/containerPort in cluster.yml
+                         # for localhost:30001 to work on kind.

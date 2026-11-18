@@ -1,0 +1,80 @@
+# =============================================================================
+# deploy.yml  -  a Deployment (used in lab steps 4, 5, 7, 8, 9)
+# =============================================================================
+# Used with:   kubectl apply -f deploy.yml
+#
+# A Deployment manages a ReplicaSet, which in turn manages Pods:
+#
+#     Deployment  ->  ReplicaSet  ->  Pods
+#
+# Deployment  = desired state + update strategy + revision history
+# ReplicaSet  = "keep exactly N pods matching this template alive"
+# Pods        = the actual running containers
+#
+# Every time you change the pod template (e.g. the image), the Deployment
+# creates a NEW ReplicaSet and shifts pods from the old one to the new one.
+# The old ReplicaSet is kept (scaled to 0) so you can roll back to it.
+#
+# EXPECT after apply (in namespace "lab"):
+#   - 1 Deployment, 1 ReplicaSet, 3 Pods (names like web-deploy-<hash>-<id>)
+#   - Pods spread across the two worker nodes
+#   - Deleting a pod -> a replacement appears within seconds
+# =============================================================================
+apiVersion: apps/v1     # Deployments live in the "apps" API group
+kind: Deployment
+metadata:
+  name: web-deploy
+  namespace: lab        # the Deployment, its ReplicaSets and its pods all
+                        # live in this namespace
+  annotations:
+    kubernetes.io/change-cause: "Initial deployment with nginx:1.25"
+spec:
+  # Desired number of pods. `kubectl scale` changes this live, but
+  # re-applying this file resets it to 3 (the file is the source of truth).
+  replicas: 3
+
+  # How the Deployment finds the pods it owns. MUST match the labels in
+  # template.metadata.labels below, otherwise the API rejects the object.
+  # Selectors only ever match objects in the SAME namespace.
+  selector:
+    matchLabels:
+      app: web
+
+  # Seconds a new pod must be Ready (without crashing) before it counts as
+  # "available". Slows rollouts slightly so you can watch them happen.
+  minReadySeconds: 5
+
+  # If a rollout makes no progress for this many seconds, the Deployment is
+  # marked failed (ProgressDeadlineExceeded). `kubectl rollout status` then
+  # exits with an error. Kubernetes does NOT roll back automatically.
+  progressDeadlineSeconds: 60
+
+  # How many old ReplicaSets to keep for rollback. Default is 10.
+  revisionHistoryLimit: 5
+
+  strategy:
+    type: RollingUpdate   # replace pods gradually (the alternative,
+                          # "Recreate", kills everything first = downtime)
+    rollingUpdate:
+      # During an update, at most this many pods may be unavailable
+      # (below the desired count). With replicas=3 and 1 -> min 2 available.
+      maxUnavailable: 1
+      # During an update, at most this many EXTRA pods above the desired
+      # count may exist. With replicas=3 and 1 -> max 4 pods at once.
+      maxSurge: 1
+
+  # ---- Pod template: the blueprint for every pod this Deployment creates ----
+  # Changing ANYTHING in this section (image, env, ports...) triggers a
+  # rolling update. Changing replicas does not.
+  # (No namespace here: pods are created in the Deployment's namespace.)
+  template:
+    metadata:
+      labels:
+        app: web          # must match spec.selector.matchLabels above
+                          # (and the Service selector in svc.yml)
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25 # the lab updates this to 1.27 with `kubectl set image`
+        ports:
+        - containerPort: 80
