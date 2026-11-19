@@ -1,0 +1,36 @@
+# =============================================================================
+# ingress.yml  -  the first Ingress (used in lab step 20)
+# =============================================================================
+# Used with:   kubectl apply -f ingress.yml
+#
+# An Ingress is only DATA: a set of HTTP routing rules stored in the API
+# server. It does nothing by itself. The controller (Traefik) watches for
+# Ingress objects, and rebuilds its own routing table from them.
+#
+# This one says: "every request, whatever the host name, whatever the path
+# (prefix /), goes to Service whoami-svc port 80".
+#
+# EXPECT:
+#   - `kubectl get ingress` shows CLASS traefik, HOSTS *, PORTS 80
+#   - `curl localhost` returns the whoami page, now with extra headers
+#     (X-Forwarded-*) added by the controller
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: whoami
+  namespace: lab                 # the Ingress must live in the SAME namespace
+                                 # as the Services it routes to
+spec:
+  ingressClassName: traefik      # which controller should handle this Ingress
+                                 # (see `kubectl get ingressclass`)
+  rules:
+  - http:                        # no `host:` -> matches any host name
+      paths:
+      - path: /
+        pathType: Prefix         # Prefix = "this path and everything under it"
+        backend:
+          service:
+            name: whoami-svc     # a Service in the same namespace
+            port:
+              number: 80         # the Service's port (not the container's)

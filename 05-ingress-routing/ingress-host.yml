@@ -1,0 +1,48 @@
+# =============================================================================
+# ingress-host.yml  -  host-based routing (used in lab step 21)
+# =============================================================================
+# Used with:   kubectl apply -f ingress-host.yml
+#
+# One entry point, several apps, chosen by the HOST name of the request (the
+# `Host:` header):
+#
+#   red.lab.test   -> Service red-svc
+#   blue.lab.test  -> Service blue-svc
+#   anything else  -> 404 from the controller (no rule matches)
+#
+# ".test" is a reserved top-level domain, so these names can never clash with
+# a real site. They don't exist in DNS: the lab sends the Host header by hand
+# with curl -H (or maps them to 127.0.0.1 with curl --resolve).
+#
+# EXPECT:
+#   curl -H "Host: red.lab.test" localhost   -> page saying "Name: red"
+#   curl -H "Host: blue.lab.test" localhost  -> page saying "Name: blue"
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: apps-host
+  namespace: lab
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: red.lab.test
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: red-svc
+            port:
+              number: 80
+  - host: blue.lab.test
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: blue-svc
+            port:
+              number: 80

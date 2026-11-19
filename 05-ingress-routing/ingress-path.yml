@@ -1,0 +1,48 @@
+# =============================================================================
+# ingress-path.yml  -  path-based routing (used in lab step 22)
+# =============================================================================
+# Used with:   kubectl apply -f ingress-path.yml
+#
+# One host name, several apps, chosen by the URL PATH:
+#
+#   apps.lab.test/red...   -> Service red-svc
+#   apps.lab.test/blue...  -> Service blue-svc
+#   anything else          -> 404
+#
+# IMPORTANT: the backend receives the ORIGINAL path. red-svc sees a request
+# for "/red/foo", not "/foo". A standard Ingress cannot strip the prefix; that
+# needs controller-specific features (Traefik middleware, nginx annotations...).
+# whoami doesn't care which path it gets, which is why this demo works.
+#
+# pathType: Prefix matches the path and anything below it. Exact matches only
+# that exact path. (ImplementationSpecific leaves the choice to the controller.)
+#
+# EXPECT:
+#   curl -H "Host: apps.lab.test" localhost/red    -> "Name: red",  GET /red
+#   curl -H "Host: apps.lab.test" localhost/blue/x -> "Name: blue", GET /blue/x
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: apps-path
+  namespace: lab
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: apps.lab.test
+    http:
+      paths:
+      - path: /red
+        pathType: Prefix
+        backend:
+          service:
+            name: red-svc
+            port:
+              number: 80
+      - path: /blue
+        pathType: Prefix
+        backend:
+          service:
+            name: blue-svc
+            port:
+              number: 80

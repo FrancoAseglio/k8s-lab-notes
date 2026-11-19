@@ -1,0 +1,31 @@
+# =============================================================================
+# traefik-values.yml - Helm values for the Traefik Ingress controller
+# =============================================================================
+# Used with:
+#   helm upgrade --install traefik traefik/traefik \
+#     --namespace traefik --create-namespace -f traefik-values.yml
+#
+# An Ingress controller is just pods running a reverse proxy (here Traefik)
+# that watches the API server for Ingress objects and configures itself from
+# them. To receive traffic it needs a Service of its own. We make that Service
+# a NodePort with FIXED port numbers, so they match the port mappings in
+# cluster.yml (host 80 -> 30080, host 443 -> 30443).
+#
+# Everything else uses the chart's defaults: that includes an IngressClass
+# named "traefik" which links Ingress objects to this controller.
+#
+# Why Traefik and not ingress-nginx? The Kubernetes project retired
+# ingress-nginx in March 2026 (no more fixes, including security fixes), so
+# most older tutorials point at a dead end. Traefik is actively maintained and
+# understands standard Ingress objects.
+# =============================================================================
+
+service:
+  spec:
+    type: NodePort
+
+ports:
+  web:
+    nodePort: 30080
+  websecure:
+    nodePort: 30443

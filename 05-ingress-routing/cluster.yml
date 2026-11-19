@@ -1,0 +1,34 @@
+# =============================================================================
+# cluster.yml  -  kind cluster for the Ingress sessions (lab steps 18 and up)
+# =============================================================================
+# Used with:   kind create cluster --name ingress-a --config cluster.yml
+#
+# Same idea as the first lab's cluster (3 nodes, ports mapped to your machine),
+# but the mapped ports are the standard web ports:
+#
+#   your browser/curl -> localhost:80  -> node container :30080
+#   your browser/curl -> localhost:443 -> node container :30443
+#
+# 30080 and 30443 are the NodePorts of the Ingress CONTROLLER's own Service
+# (see traefik-values.yml). So: host port 80 -> NodePort -> controller pod ->
+# your apps. The controller is the single entry point for all web traffic.
+#
+# NOTE: host ports 80 and 443 must be free. If something already uses them,
+#       change `hostPort` below (e.g. 8080 and 8443) and add the port to your
+#       curl commands.
+# EXPECT: 3 nodes: ingress-a-control-plane, ingress-a-worker, ingress-a-worker2
+# =============================================================================
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+
+nodes:
+- role: control-plane
+  extraPortMappings:
+  - containerPort: 30080   # NodePort of the controller's HTTP entry point
+    hostPort: 80
+    protocol: TCP
+  - containerPort: 30443   # NodePort of the controller's HTTPS entry point
+    hostPort: 443
+    protocol: TCP
+- role: worker
+- role: worker

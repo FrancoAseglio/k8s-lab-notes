@@ -1,0 +1,51 @@
+# =============================================================================
+# app.yml  -  the whoami app behind a ClusterIP Service (used in lab step 20)
+# =============================================================================
+# Used with:   kubectl apply -f app.yml
+#
+# A Deployment (3 pods) plus a ClusterIP Service, exactly as in lab 2.
+# An Ingress does NOT replace Services: it routes to them. The Service gives
+# the controller a stable name and port to point at; the pods behind it come
+# and go.
+#
+# EXPECT: 3 pods READY 1/1 and Service whoami-svc (ClusterIP, port 80).
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whoami
+  namespace: lab
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: whoami
+  template:
+    metadata:
+      labels:
+        app: whoami
+    spec:
+      containers:
+      - name: whoami
+        image: traefik/whoami:v1.11
+        ports:
+        - containerPort: 80
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          periodSeconds: 2
+          failureThreshold: 2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whoami-svc
+  namespace: lab
+spec:
+  type: ClusterIP
+  selector:
+    app: whoami
+  ports:
+  - port: 80
+    targetPort: 80
