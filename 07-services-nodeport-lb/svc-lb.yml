@@ -1,0 +1,30 @@
+# =============================================================================
+# svc-lb.yml  -  a LoadBalancer Service for whoami (used in lab step 17)
+# =============================================================================
+# Used with:   kubectl apply -f svc-lb.yml
+#
+# LoadBalancer = NodePort + a request to the cloud provider: "please create an
+# external load balancer and send its traffic to the node ports of this
+# Service". The cloud controller then writes the load balancer's address into
+# the Service's status (the EXTERNAL-IP column).
+#
+# On a cloud (EKS, GKE, AKS...) that address shows up within a minute or two.
+# On plain kind there is NO cloud controller, so EXTERNAL-IP stays <pending>
+# forever. The Service still gets a ClusterIP and a node port and still works
+# through them. The lab shows how to fix that if you want to.
+#
+# EXPECT on kind: TYPE LoadBalancer, EXTERNAL-IP <pending>,
+#                 PORT(S) 8080:3xxxx/TCP (an auto-assigned node port)
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: whoami-lb
+  namespace: lab
+spec:
+  type: LoadBalancer
+  selector:
+    app: whoami
+  ports:
+  - port: 8080          # the port the load balancer listens on
+    targetPort: 80      # the container port

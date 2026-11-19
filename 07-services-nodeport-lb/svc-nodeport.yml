@@ -1,0 +1,34 @@
+# =============================================================================
+# svc-nodeport.yml  -  a NodePort Service for whoami (used in lab step 15)
+# =============================================================================
+# Used with:   kubectl apply -f svc-nodeport.yml
+#
+# NodePort = ClusterIP + a port opened on EVERY node of the cluster.
+# Traffic arriving on <any-node-ip>:30001 is forwarded to one of the ready pods,
+# even if that node runs none of them.
+#
+#   your machine -> localhost:30001 -> kind control-plane container:30001
+#     -> kube-proxy -> a whoami pod on any node
+#
+# (The first hop exists because cluster.yml maps host port 30001 to the node
+# container's port 30001.)
+#
+# EXPECT:
+#   - TYPE NodePort, PORT(S) 80:30001/TCP, and a CLUSTER-IP as well
+#   - `curl localhost:30001` returns the whoami page; repeated calls come
+#     from different pods
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: whoami-nodeport
+  namespace: lab
+spec:
+  type: NodePort
+  selector:
+    app: whoami
+  ports:
+  - port: 80            # the Service's own (ClusterIP) port
+    targetPort: 80      # the container port
+    nodePort: 30001     # opened on every node. Range 30000-32767; if you omit
+                        # it Kubernetes picks a free one for you.

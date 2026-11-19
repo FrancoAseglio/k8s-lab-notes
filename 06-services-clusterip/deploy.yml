@@ -1,0 +1,49 @@
+# =============================================================================
+# deploy.yml  -  the "whoami" Deployment (the app used in this session)
+# =============================================================================
+# Used with:   kubectl apply -f deploy.yml
+#
+# whoami (traefik/whoami) is a tiny web server that answers every request
+# with a text page about itself: its Hostname (= the pod name), its IPs, the
+# address the request came from (RemoteAddr) and all the request headers.
+# That makes it ideal for networking experiments: you can SEE which pod
+# answered and where the request came from.
+#
+# It also has a /health endpoint that returns 200 by default. A POST to
+# /health with a number as the body changes the status code returned to later
+# GETs, e.g. `curl -X POST -d 500 http://<pod-ip>/health`. The readiness probe
+# below uses it, so you can make ONE pod "not ready" on demand.
+#
+# EXPECT after apply (namespace "lab"): 1 Deployment, 1 ReplicaSet, 3 pods,
+# all READY 1/1 within a few seconds (the first image pull takes longer).
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whoami
+  namespace: lab
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: whoami
+  template:
+    metadata:
+      labels:
+        app: whoami             # the label every Service in this lab selects on
+    spec:
+      containers:
+      - name: whoami
+        image: traefik/whoami:v1.11
+        ports:
+        - containerPort: 80
+        # A pod only receives Service traffic while it is READY. Readiness is
+        # decided by this probe: GET /health must return a 2xx/3xx code.
+        # (A failing READINESS probe removes the pod from Services; it does
+        # NOT restart it. That is what a LIVENESS probe does.)
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          periodSeconds: 2      # check every 2 s
+          failureThreshold: 2   # 2 failures in a row -> not ready
