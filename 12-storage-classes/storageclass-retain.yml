@@ -1,0 +1,25 @@
+# =============================================================================
+# storageclass-retain.yml  -  a dynamic class that KEEPS data (used in lab step 40)
+# =============================================================================
+# Used with:   kubectl apply -f storageclass-retain.yml
+#
+# Same provisioner as kind's built-in "standard" class (rancher.io/local-path:
+# it creates a directory on a node and a PV for it), but with a different
+# policy: reclaimPolicy: Retain.
+#
+#   reclaimPolicy   what happens to the PV (and its data) when the CLAIM is deleted
+#     Delete  the PV and the storage behind it are deleted   (kind's default)
+#     Retain  the PV and the data are kept for an admin to deal with
+#
+# The class's reclaimPolicy is copied into every PV it creates; from then on
+# the PV carries its own setting (which you can edit, see lab step 43).
+#
+# EXPECT: `kubectl get storageclass` lists lab-retain next to standard, RECLAIMPOLICY Retain.
+# =============================================================================
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: lab-retain
+provisioner: rancher.io/local-path       # same provisioner as the default class
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer  # this provisioner needs to know the node

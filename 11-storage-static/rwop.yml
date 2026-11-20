@@ -1,0 +1,87 @@
+# =============================================================================
+# rwop.yml  -  ReadWriteOncePod: one volume, ONE pod (used in lab step 39)
+# =============================================================================
+# Used with:   kubectl apply -f rwop.yml
+#
+# BEFORE applying, create the directory (lab step 39):
+#   docker exec lab-a-worker2 mkdir -p /mnt/disks/vol3
+#
+# ReadWriteOncePod is stricter than ReadWriteOnce: the volume may be mounted by
+# a SINGLE POD in the whole cluster. This file holds a PV and claim of that
+# kind, and TWO pods that both want the claim.
+#
+# EXPECT: one of rwop-1 / rwop-2 runs; the other stays Pending, and
+#         `kubectl describe pod` mentions the ReadWriteOncePod access mode.
+#         Delete the running one and the other starts.
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-vol3
+spec:
+  capacity:
+    storage: 500Mi
+  accessModes:
+  - ReadWriteOncePod
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual-local
+  volumeMode: Filesystem
+  local:
+    path: /mnt/disks/vol3
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - lab-a-worker2
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claim-rwop
+  namespace: lab
+spec:
+  accessModes:
+  - ReadWriteOncePod
+  storageClassName: manual-local
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rwop-1
+  namespace: lab
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.37
+    command: ["sleep", "86400"]
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: claim-rwop
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rwop-2
+  namespace: lab
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.37
+    command: ["sleep", "86400"]
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: claim-rwop

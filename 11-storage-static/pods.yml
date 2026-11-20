@@ -1,0 +1,68 @@
+# =============================================================================
+# pods.yml  -  one pod per claim (used in lab steps 37-38)
+# =============================================================================
+# Used with:   kubectl apply -f pods.yml
+#
+# Each pod mounts "its" claim at /data. Because the claims use a
+# WaitForFirstConsumer class, they only bind once a pod exists, and the pod
+# lands on the node where the chosen volume lives.
+#
+# EXPECT:
+#   pod-a -> Running on lab-a-worker   (claim-a -> pv-vol1)
+#   pod-b -> Running on lab-a-worker2  (claim-b -> pv-vol2)
+#   pod-c -> Pending: its claim can't bind. `kubectl describe pod pod-c` says
+#            no node "didn't find available persistent volumes to bind"
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-a
+  namespace: lab
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.37
+    command: ["sleep", "86400"]
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: claim-a
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-b
+  namespace: lab
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.37
+    command: ["sleep", "86400"]
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: claim-b
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-c
+  namespace: lab
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.37
+    command: ["sleep", "86400"]
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: claim-c

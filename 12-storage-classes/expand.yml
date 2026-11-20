@@ -1,0 +1,53 @@
+# =============================================================================
+# expand.yml  -  a class that ALLOWS expansion, plus a claim and pod (lab step 42)
+# =============================================================================
+# Used with:   kubectl apply -f expand.yml
+#
+# allowVolumeExpansion: true on a StorageClass lets you grow a bound claim later
+# by raising `spec.resources.requests.storage` (shrinking is never allowed).
+# Without the flag, the API server rejects the edit.
+#
+# BUT the flag is only a permission. Something has to do the actual resizing: a
+# CSI driver with an expander, or a cloud provider. kind's local-path provisioner
+# has none, so here you can see the request being ACCEPTED while nothing happens.
+#
+# EXPECT: StorageClass lab-expand (ALLOWVOLUMEEXPANSION true), pvc-expand Bound
+#         once expand-pod runs.
+# =============================================================================
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: lab-expand
+provisioner: rancher.io/local-path
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-expand
+  namespace: lab
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: lab-expand
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: expand-pod
+  namespace: lab
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.37
+    command: ["sleep", "86400"]
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: pvc-expand

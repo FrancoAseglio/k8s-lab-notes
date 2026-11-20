@@ -1,0 +1,38 @@
+# =============================================================================
+# pvc.yml  -  a PersistentVolumeClaim (used in lab step 33)
+# =============================================================================
+# Used with:   kubectl apply -f pvc.yml
+#
+# A PersistentVolumeClaim (PVC) is a REQUEST for storage: "I need 1Gi that one
+# node can mount read-write". It is namespaced, like pods. A pod never mounts a
+# disk directly; it mounts a claim, and Kubernetes finds or creates a
+# PersistentVolume (PV) to satisfy it.
+#
+# The three objects:
+#   StorageClass  = the recipe / the "kind" of storage the cluster can create
+#   PersistentVolume (PV) = a piece of storage that exists (cluster-wide)
+#   PersistentVolumeClaim (PVC) = a request for storage (in a namespace)
+#
+# This claim names no storageClassName, so the cluster's DEFAULT StorageClass
+# is filled in for you. On kind that is "standard" (local directories on the
+# nodes, created by the local-path provisioner).
+#
+# EXPECT:
+#   - `kubectl get pvc` shows STATUS Pending, STORAGECLASS standard
+#   - `kubectl describe pvc data-claim` says it is "waiting for first consumer
+#     to be created before binding": no pod uses it yet, so nothing is created
+#   - after the pod from pod.yml starts, the claim becomes Bound
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-claim
+  namespace: lab
+spec:
+  accessModes:
+  - ReadWriteOnce          # mountable read-write by ONE node at a time
+                           # (several pods on that node may share it)
+  resources:
+    requests:
+      storage: 1Gi         # the amount requested
+  # storageClassName: ...  # omitted on purpose -> the default class is used

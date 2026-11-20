@@ -1,0 +1,116 @@
+# =============================================================================
+# binding-modes.yml  -  Immediate vs WaitForFirstConsumer (used in lab step 41)
+# =============================================================================
+# Used with:   kubectl apply -f binding-modes.yml
+#
+# BEFORE applying, create the directories (lab step 41):
+#   docker exec lab-a-worker mkdir -p /mnt/disks/imm /mnt/disks/wffc
+#
+# Two static volumes, two claims, two classes that differ ONLY in when binding
+# happens:
+#
+#   lab-immediate  volumeBindingMode: Immediate
+#       the claim binds to a matching PV as soon as it is created, before any pod
+#   manual-local   volumeBindingMode: WaitForFirstConsumer
+#       the claim waits until a pod using it is being scheduled
+#
+# Why it matters: with Immediate, the volume is chosen without knowing where the
+# pod will run. With storage tied to a node (or a cloud zone) that can make a pod
+# unschedulable. WaitForFirstConsumer lets the scheduler decide first.
+#
+# The claims select their PV by label, so leftovers from other sessions can't
+# interfere.
+#
+# EXPECT: claim-imm Bound immediately; claim-wffc Pending until pod-wffc exists.
+# =============================================================================
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: lab-immediate
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: Immediate
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: manual-local
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-imm
+  labels:
+    lab: binding-modes
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes: [ReadWriteOnce]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: lab-immediate
+  volumeMode: Filesystem
+  local:
+    path: /mnt/disks/imm
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - lab-a-worker
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-wffc
+  labels:
+    lab: binding-modes
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes: [ReadWriteOnce]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual-local
+  volumeMode: Filesystem
+  local:
+    path: /mnt/disks/wffc
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - lab-a-worker
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claim-imm
+  namespace: lab
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: lab-immediate
+  selector:
+    matchLabels:
+      lab: binding-modes
+  resources:
+    requests:
+      storage: 500Mi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claim-wffc
+  namespace: lab
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: manual-local
+  selector:
+    matchLabels:
+      lab: binding-modes
+  resources:
+    requests:
+      storage: 500Mi

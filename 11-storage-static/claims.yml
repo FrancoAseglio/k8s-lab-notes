@@ -1,0 +1,58 @@
+# =============================================================================
+# claims.yml  -  three claims with different needs (used in lab step 37)
+# =============================================================================
+# Used with:   kubectl apply -f claims.yml
+#
+# Kubernetes binds a claim to a PV when ALL of these hold:
+#   - same storageClassName
+#   - the PV's access modes include every mode the claim asks for
+#   - the PV's capacity is AT LEAST the requested size
+#   - the PV matches the claim's label selector (if it has one)
+# Binding is one-to-one: a PV serves at most one claim, and the claim gets the
+# WHOLE volume (a 500Mi claim bound to a 1Gi PV shows CAPACITY 1Gi).
+#
+#   claim-a   asks 500Mi, selects tier=small   -> can only be pv-vol1 (1Gi)
+#   claim-b   asks 1500Mi                       -> only pv-vol2 (2Gi) is big enough
+#   claim-c   asks 5Gi                          -> NO volume is big enough: stays Pending
+#
+# EXPECT (after the pods from pods.yml exist): claim-a and claim-b Bound,
+# claim-c Pending forever until a big enough PV appears.
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claim-a
+  namespace: lab
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: manual-local
+  selector:                     # only consider PVs carrying this label
+    matchLabels:
+      tier: small
+  resources:
+    requests:
+      storage: 500Mi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claim-b
+  namespace: lab
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: manual-local
+  resources:
+    requests:
+      storage: 1500Mi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claim-c
+  namespace: lab
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: manual-local
+  resources:
+    requests:
+      storage: 5Gi

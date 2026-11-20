@@ -1,0 +1,71 @@
+# =============================================================================
+# pv.yml  -  two PersistentVolumes created by hand (used in lab step 36)
+# =============================================================================
+# Used with:   kubectl apply -f pv.yml
+#
+# BEFORE applying, create the directories these volumes point at (lab step 36):
+#   docker exec lab-a-worker  mkdir -p /mnt/disks/vol1
+#   docker exec lab-a-worker2 mkdir -p /mnt/disks/vol2
+# (kind nodes are Docker containers: this is "adding a disk" to a node.)
+#
+# A PersistentVolume (PV) describes real storage: how big, how it can be
+# accessed, where it is, and what to do with it when it is no longer claimed.
+# PVs are cluster-wide (no namespace).
+#
+# These are `local` volumes: a directory on one specific node. Because the data
+# exists on that node only, `nodeAffinity` is REQUIRED: it tells the scheduler
+# that any pod using this volume must run on that node.
+#
+# EXPECT: `kubectl get pv` lists pv-vol1 (1Gi) and pv-vol2 (2Gi), STATUS Available.
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-vol1
+  labels:
+    tier: small                 # a label a claim can select on (see claims.yml)
+spec:
+  capacity:
+    storage: 1Gi                # the size it OFFERS
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain   # what happens when the claim is deleted:
+                                          #   Retain = keep the volume and its data
+                                          #   Delete = delete the volume (and storage)
+  storageClassName: manual-local          # only claims with this class can bind
+  volumeMode: Filesystem
+  local:
+    path: /mnt/disks/vol1       # the directory ON THE NODE
+  nodeAffinity:                 # which node(s) the storage is attached to
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - lab-a-worker        # the kind node container name (cluster "lab-a")
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-vol2
+  labels:
+    tier: large
+spec:
+  capacity:
+    storage: 2Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual-local
+  volumeMode: Filesystem
+  local:
+    path: /mnt/disks/vol2
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - lab-a-worker2

@@ -1,0 +1,29 @@
+# =============================================================================
+# pod-shared.yml  -  a SECOND pod using claim-a (used in lab step 39)
+# =============================================================================
+# Used with:   kubectl apply -f pod-shared.yml
+#
+# ReadWriteOnce means "mounted read-write by a single NODE", not a single pod.
+# This pod uses the same claim as pod-a. Because the volume lives on one node,
+# both pods end up on that node and see the same files.
+#
+# EXPECT: pod-a2 Running on the same node as pod-a, and
+#         `kubectl exec pod-a2 -- cat /data/who.txt` shows what pod-a wrote.
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-a2
+  namespace: lab
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.37
+    command: ["sleep", "86400"]
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: claim-a

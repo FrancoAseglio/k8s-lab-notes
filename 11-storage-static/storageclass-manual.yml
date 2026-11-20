@@ -1,0 +1,28 @@
+# =============================================================================
+# storageclass-manual.yml  -  a class for volumes YOU create (used in lab step 36)
+# =============================================================================
+# Used with:   kubectl apply -f storageclass-manual.yml
+#
+# A StorageClass normally tells Kubernetes HOW to create volumes on demand
+# (provisioner). This one says "nobody creates volumes automatically":
+#
+#   provisioner: kubernetes.io/no-provisioner
+#
+# The administrator creates PersistentVolumes by hand (static provisioning) and
+# gives them this class name; claims with the same class name can bind to them.
+#
+# volumeBindingMode: WaitForFirstConsumer delays binding until a pod that uses
+# the claim is scheduled. For storage tied to ONE node (a local disk) that is
+# essential: the scheduler must pick the node and the volume together.
+#
+# EXPECT: `kubectl get storageclass` lists manual-local with
+#         PROVISIONER kubernetes.io/no-provisioner, VOLUMEBINDINGMODE WaitForFirstConsumer
+# =============================================================================
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: manual-local
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+# reclaimPolicy has no effect on volumes you create yourself: each PV carries
+# its own persistentVolumeReclaimPolicy.

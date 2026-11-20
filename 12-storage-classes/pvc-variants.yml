@@ -1,0 +1,50 @@
+# =============================================================================
+# pvc-variants.yml  -  the three ways to (not) name a class (used in lab step 40)
+# =============================================================================
+# Used with:   kubectl apply -f pvc-variants.yml
+#
+# `storageClassName` in a claim has THREE different meanings:
+#
+#   omitted      -> "use the cluster's DEFAULT class" (standard on kind)
+#   "lab-retain" -> "use exactly this class"
+#   ""  (empty)  -> "NO class: only bind to a PV that has no class".
+#                   Dynamic provisioning is switched OFF for this claim.
+#
+# EXPECT: all three Pending (nothing uses them yet), with different reasons:
+#   pvc-default / pvc-named : waiting for a pod (WaitForFirstConsumer)
+#   pvc-none                : no persistent volumes available, and no class to create one
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-default
+  namespace: lab
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-named
+  namespace: lab
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: lab-retain
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-none
+  namespace: lab
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 1Gi

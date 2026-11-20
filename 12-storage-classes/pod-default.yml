@@ -1,0 +1,25 @@
+# =============================================================================
+# pod-default.yml  -  a pod that binds pvc-default (used in lab step 42)
+# =============================================================================
+# Used with:   kubectl apply -f pod-default.yml
+#
+# Using the claim makes the dynamic provisioner create a volume (class
+# "standard"). EXPECT: pvc-default Bound, pod default-pod Running.
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: default-pod
+  namespace: lab
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.37
+    command: ["sleep", "86400"]
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: pvc-default

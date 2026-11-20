@@ -1,0 +1,24 @@
+# =============================================================================
+# pod-wffc.yml  -  the pod that triggers claim-wffc to bind (lab step 41)
+# =============================================================================
+# Used with:   kubectl apply -f pod-wffc.yml
+#
+# EXPECT: pod-wffc Running on lab-a-worker (where pv-wffc lives) and claim-wffc Bound.
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-wffc
+  namespace: lab
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.37
+    command: ["sleep", "86400"]
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: claim-wffc

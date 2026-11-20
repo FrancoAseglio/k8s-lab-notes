@@ -1,0 +1,24 @@
+# =============================================================================
+# pod-retain.yml  -  a pod that binds pvc-named, class lab-retain (lab step 43)
+# =============================================================================
+# Used with:   kubectl apply -f pod-retain.yml
+#
+# EXPECT: pvc-named Bound; the PV created for it has RECLAIM POLICY Retain.
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: retain-pod
+  namespace: lab
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.37
+    command: ["sleep", "86400"]
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: pvc-named

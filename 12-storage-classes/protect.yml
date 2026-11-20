@@ -1,0 +1,39 @@
+# =============================================================================
+# protect.yml  -  a claim on the DEFAULT class, to practise protecting its data (step 43)
+# =============================================================================
+# Used with:   kubectl apply -f protect.yml
+#
+# A claim on kind's default class ("standard", reclaimPolicy Delete) and a pod
+# that uses it. In the lab you change the reclaim policy of its PV to Retain
+# BEFORE deleting the claim, so the data survives.
+#
+# EXPECT: pvc-protect Bound, protect-pod Running.
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-protect
+  namespace: lab
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: protect-pod
+  namespace: lab
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.37
+    command: ["sleep", "86400"]
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: pvc-protect

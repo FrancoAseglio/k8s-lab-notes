@@ -1,0 +1,39 @@
+# =============================================================================
+# pod.yml  -  a pod with two volumes (used in lab steps 33-35)
+# =============================================================================
+# Used with:   kubectl apply -f pod.yml
+#
+# One tiny container (busybox) with two volumes mounted so you can compare them:
+#
+#   /data     backed by the PVC data-claim -> PERSISTENT: lives as long as the
+#             claim/volume, independent of this pod
+#   /scratch  an emptyDir               -> EPHEMERAL: created with the pod and
+#             deleted with the pod (it survives container restarts, not the
+#             pod's deletion)
+#
+# The pod references the claim BY NAME only (claimName). It knows nothing about
+# the node, the directory or the provisioner behind it.
+#
+# EXPECT: `kubectl get pod writer` Running a few seconds after the claim binds.
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: writer
+  namespace: lab
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.37
+    command: ["sleep", "86400"]       # keep the pod alive; we use `kubectl exec`
+    volumeMounts:
+    - name: data                      # must match a name under `volumes:` below
+      mountPath: /data
+    - name: scratch
+      mountPath: /scratch
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: data-claim           # the PVC in the same namespace
+  - name: scratch
+    emptyDir: {}

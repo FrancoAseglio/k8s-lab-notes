@@ -1,0 +1,23 @@
+# =============================================================================
+# pvc-nodefault.yml  -  a claim with NO class written (optional try, lab step 40)
+# =============================================================================
+# Used with:   kubectl apply -f pvc-nodefault.yml
+#
+# Identical in spirit to pvc-default in pvc-variants.yml: no storageClassName.
+# Used in the optional experiment where you temporarily REMOVE the default flag
+# from the "standard" class, to see what an unnamed claim becomes when there is
+# no default class to fill in.
+#
+# EXPECT (with the default flag removed): STORAGECLASS empty, STATUS Pending forever.
+# Remember to restore the default flag afterwards (see the lab step).
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-nodefault
+  namespace: lab
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
