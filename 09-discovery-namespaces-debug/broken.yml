@@ -1,0 +1,40 @@
+# This app is deliberately broken. See the README (step 31) for the challenge.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shop
+  namespace: lab
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: shop
+  template:
+    metadata:
+      labels:
+        app: shop
+    spec:
+      containers:
+      - name: whoami
+        image: traefik/whoami:v1.11
+        args: ["--name=shop"]
+        ports:
+        - containerPort: 80
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          periodSeconds: 2
+          failureThreshold: 2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shop-svc
+  namespace: lab
+spec:
+  selector:
+    app: shop-web
+  ports:
+  - port: 80
+    targetPort: 8080

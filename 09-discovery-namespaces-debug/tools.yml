@@ -1,0 +1,32 @@
+# =============================================================================
+# tools.yml  -  client pods in both namespaces (used in lab steps 28-31)
+# =============================================================================
+# Used with:   kubectl apply -f tools.yml     (after both namespaces exist)
+#
+# Two curl "client" pods, one in lab and one in dev, so you can make the same
+# request from each namespace and compare. (The dnsutils pod for nslookup is
+# in dnsutils-pod.yml.)
+#
+# EXPECT: pods "client" in lab and in dev, both 1/1 Running.
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: client
+  namespace: lab
+spec:
+  containers:
+  - name: curl
+    image: curlimages/curl:8.14.1
+    command: ["sleep", "86400"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: client
+  namespace: dev
+spec:
+  containers:
+  - name: curl
+    image: curlimages/curl:8.14.1
+    command: ["sleep", "86400"]

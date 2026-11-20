@@ -1,0 +1,30 @@
+# =============================================================================
+# svc-headless.yml  -  a headless Service for whoami (used in lab step 25)
+# =============================================================================
+# Used with:   kubectl apply -f svc-headless.yml
+#
+# `clusterIP: None` makes a "headless" Service: it gets NO virtual IP and
+# kube-proxy does nothing for it. Instead, DNS answers a lookup of the Service
+# name with the IP addresses of ALL its ready pods. The client talks to a pod
+# directly and picks which one itself.
+#
+# Used for stateful apps (StatefulSets, databases) that need to address
+# individual pods, and for client-side load balancing.
+#
+# EXPECT:
+#   - `kubectl get svc whoami-headless` shows CLUSTER-IP None
+#   - `nslookup whoami-headless` returns one address per ready pod,
+#     where `nslookup whoami-svc` (a normal ClusterIP Service) returns one
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: whoami-headless
+  namespace: lab
+spec:
+  clusterIP: None
+  selector:
+    app: whoami
+  ports:
+  - port: 80
+    targetPort: 80

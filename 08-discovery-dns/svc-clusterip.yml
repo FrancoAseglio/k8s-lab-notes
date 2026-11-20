@@ -1,0 +1,34 @@
+# =============================================================================
+# svc-clusterip.yml  -  a ClusterIP Service for whoami
+# =============================================================================
+# Used with:   kubectl apply -f svc-clusterip.yml
+#
+# A Service is three things in one:
+#   1. a selector      "which pods am I in front of?"   (labels)
+#   2. a stable name   whoami-svc  (DNS) and a virtual IP (the ClusterIP)
+#   3. a port mapping  "port" on the Service -> "targetPort" on the pods
+#
+# Behind the scenes, a controller turns (1) into an EndpointSlice: the live
+# list of READY pods' IPs. kube-proxy on every node then makes sure traffic
+# sent to the ClusterIP is forwarded to one of those pod IPs.
+#
+# ClusterIP is the default type. The IP is virtual and only reachable from
+# INSIDE the cluster (pods and nodes), never from your laptop.
+#
+# EXPECT:
+#   - `kubectl get svc whoami-svc` shows TYPE ClusterIP, a 10.96.x.x address,
+#     EXTERNAL-IP <none>, PORT(S) 80/TCP
+#   - `kubectl get endpointslices` lists one address per ready pod
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: whoami-svc        # also the DNS name: whoami-svc.lab.svc.cluster.local
+  namespace: lab          # a Service only selects pods in its OWN namespace
+spec:
+  type: ClusterIP         # (default, written out for clarity)
+  selector:
+    app: whoami           # must match the pod labels in deploy.yml
+  ports:
+  - port: 80              # the port clients use when calling the Service
+    targetPort: 80        # the port the container listens on

@@ -1,0 +1,23 @@
+# =============================================================================
+# dnsutils-pod.yml  -  a pod with DNS tools (used in lab steps 24-27 and 28-31)
+# =============================================================================
+# Used with:   kubectl apply -f dnsutils-pod.yml
+#              kubectl exec dnsutils -- nslookup <name>
+#
+# This is the pod the Kubernetes documentation uses for "Debugging DNS
+# Resolution". The agnhost image contains nslookup and the other basics. It
+# runs in namespace "lab" so its DNS search path starts with lab.svc...
+#
+# EXPECT: `kubectl get pod dnsutils` shows 1/1 Running.
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dnsutils
+  namespace: lab
+spec:
+  containers:
+  - name: dnsutils
+    image: registry.k8s.io/e2e-test-images/agnhost:2.39
+    imagePullPolicy: IfNotPresent
+  restartPolicy: Always

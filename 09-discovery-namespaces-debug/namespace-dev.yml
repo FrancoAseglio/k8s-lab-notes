@@ -1,0 +1,13 @@
+# =============================================================================
+# namespace-dev.yml  -  a second namespace, "dev" (used in lab step 28)
+# =============================================================================
+# Used with:   kubectl apply -f namespace-dev.yml
+#
+# The same app and Service names will exist in "lab" AND "dev" so you can see
+# how DNS keeps them apart.
+# EXPECT: `namespace/dev created`.
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev

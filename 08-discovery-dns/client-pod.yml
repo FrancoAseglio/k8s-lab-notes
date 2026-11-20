@@ -1,0 +1,24 @@
+# =============================================================================
+# client-pod.yml  -  a throwaway "client" pod to call things from inside the cluster
+# =============================================================================
+# Used with:   kubectl apply -f client-pod.yml
+#              kubectl exec client -- curl -s <something>
+#
+# ClusterIP Services and cluster DNS names only work from inside the cluster,
+# so we need a pod to run curl from. The image is a minimal curl (Alpine based)
+# and `sleep` keeps it alive so you can `kubectl exec` into it any time.
+#
+# EXPECT: `kubectl get pod client` shows 1/1 Running after a few seconds.
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: client
+  namespace: lab
+  labels:
+    app: client           # NOT app=whoami, so the whoami Services never select it
+spec:
+  containers:
+  - name: curl
+    image: curlimages/curl:8.14.1
+    command: ["sleep", "86400"]   # keep the pod running for a day
