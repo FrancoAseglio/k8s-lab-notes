@@ -1,0 +1,27 @@
+# =============================================================================
+# service.yml  -  the headless Service for Redis (used in lab step 63)
+# =============================================================================
+# Used with:   kubectl apply -f service.yml
+#
+# Headless, so every pod gets a stable DNS name: redis-0.redis, redis-1.redis...
+# The replicas use redis-0.redis to find the primary.
+#
+# Note: DNS records for a pod are published only while it is READY (unless the
+# Service sets publishNotReadyAddresses: true). Because the StatefulSet starts
+# pods in order and waits for redis-0 to be Ready, the name redis-0.redis exists
+# by the time the replicas look for it.
+#
+# EXPECT: Service redis, CLUSTER-IP None.
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: lab
+spec:
+  clusterIP: None
+  selector:
+    app: redis
+  ports:
+  - name: redis
+    port: 6379

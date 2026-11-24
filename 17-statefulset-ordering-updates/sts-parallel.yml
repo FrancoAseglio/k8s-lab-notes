@@ -1,0 +1,64 @@
+# =============================================================================
+# sts-parallel.yml  -  podManagementPolicy: Parallel (used in lab step 62)
+# =============================================================================
+# Used with:   kubectl apply -f sts-parallel.yml
+#
+# Identical to sts-ordered.yml except for ONE field:
+#
+#   podManagementPolicy: Parallel
+#
+# With Parallel, pods are created and deleted ALL AT ONCE and the controller does
+# not wait for Ready. You keep the stable names and per-pod volumes, but not the
+# ordering. Right for applications whose pods don't depend on each other's startup
+# (many sharded stores, parallel workers).
+#
+# Note: this field cannot be changed on an existing StatefulSet: delete and
+# re-create it (lab step 62 shows the error).
+#
+# EXPECT: par-0, par-1 and par-2 all appear at once, all 0/1 (not ready yet).
+# =============================================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: par
+  namespace: lab
+spec:
+  serviceName: par
+  replicas: 3
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: par
+  template:
+    metadata:
+      labels:
+        app: par
+    spec:
+      terminationGracePeriodSeconds: 3
+      containers:
+      - name: web
+        image: busybox:1.37
+        command: ["sh", "-c"]
+        args:
+        - |
+          echo "$(hostname) started at $(date +%T)" >> /data/starts.log
+          echo "$(hostname)" > /data/index.html
+          exec httpd -f -p 80 -h /data
+        ports:
+        - name: web
+          containerPort: 80
+        readinessProbe:
+          exec:
+            command: ["test", "-f", "/data/ready"]
+          periodSeconds: 2
+        volumeMounts:
+        - name: data
+          mountPath: /data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi

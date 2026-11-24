@@ -1,0 +1,31 @@
+# =============================================================================
+# service.yml  -  the HEADLESS Service of the StatefulSet (used in lab step 55)
+# =============================================================================
+# Used with:   kubectl apply -f service.yml
+#
+# `clusterIP: None` makes this a HEADLESS Service: no virtual IP, no load
+# balancing. Instead, DNS gives every pod of the StatefulSet its own stable name:
+#
+#     <pod-name>.<service-name>.<namespace>.svc.cluster.local
+#     web-0.web.lab.svc.cluster.local
+#
+# and a lookup of the Service name itself returns the addresses of ALL its ready pods.
+#
+# The StatefulSet points at this Service with `serviceName: web`. That Service must
+# exist for the per-pod DNS names to work (Kubernetes does not create it for you).
+#
+# EXPECT: `kubectl get svc web` shows CLUSTER-IP None.
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: lab
+spec:
+  clusterIP: None            # headless
+  selector:
+    app: web                 # the label of the StatefulSet's pods
+  ports:
+  - name: web
+    port: 80
+    targetPort: 80

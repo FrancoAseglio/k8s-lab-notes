@@ -1,0 +1,81 @@
+# =============================================================================
+# sts-ordered.yml  -  ordered creation, scaling and rolling updates (lab steps 59-62)
+# =============================================================================
+# Used with:   kubectl apply -f sts-ordered.yml
+#
+# Built so you can SEE the ordering rules:
+#
+#   podManagementPolicy: OrderedReady   (the default)
+#       - pods are created one at a time, 0 then 1 then 2, each only AFTER the
+#         previous one is Running AND READY; scale-down goes the other way round
+#       - if a pod never becomes Ready, nothing after it is created
+#
+#   readiness probe: "the file /data/ready must exist"
+#       - the file doesn't exist on a new volume, so a new pod stays 0/1 until YOU
+#         create it (kubectl exec <pod> -- touch /data/ready). That lets you play
+#         the part of a slow or failing application.
+#       - the file lives on the pod's VOLUME, so it survives restarts and updates:
+#         a pod that comes back with its old volume is Ready immediately
+#
+#   updateStrategy: RollingUpdate with `partition`
+#       - pods are updated in REVERSE order (highest ordinal first), one at a time,
+#         each waiting for the previous to be Ready
+#       - `partition: N` updates only pods with ordinal >= N: the canary mechanism
+#
+# APP_VERSION is written into each pod's index.html so you can see which version a
+# pod runs. Changing it changes the pod template, which triggers an update.
+#
+# EXPECT: ordered-0 appears first and stays 0/1 until you touch /data/ready.
+# =============================================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ordered
+  namespace: lab
+spec:
+  serviceName: ordered
+  replicas: 3
+  podManagementPolicy: OrderedReady     # one at a time, in order (cannot be changed later)
+  selector:
+    matchLabels:
+      app: ordered
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0                      # update every pod with ordinal >= 0 (i.e. all)
+  template:
+    metadata:
+      labels:
+        app: ordered
+    spec:
+      terminationGracePeriodSeconds: 3
+      containers:
+      - name: web
+        image: busybox:1.37
+        command: ["sh", "-c"]
+        args:
+        - |
+          echo "$(hostname) started at $(date +%T) version=$APP_VERSION" >> /data/starts.log
+          echo "$(hostname) $APP_VERSION" > /data/index.html
+          exec httpd -f -p 80 -h /data
+        env:
+        - name: APP_VERSION
+          value: "v1"
+        ports:
+        - name: web
+          containerPort: 80
+        readinessProbe:
+          exec:
+            command: ["test", "-f", "/data/ready"]
+          periodSeconds: 2
+        volumeMounts:
+        - name: data
+          mountPath: /data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi

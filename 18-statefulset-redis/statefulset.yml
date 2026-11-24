@@ -1,0 +1,66 @@
+# =============================================================================
+# statefulset.yml  -  Redis: 1 primary + 2 replicas (used in lab steps 63-65)
+# =============================================================================
+# Used with:   kubectl apply -f statefulset.yml
+# NEEDS redis-config.yml and service.yml.
+#
+# What the StatefulSet provides here, and what it does not:
+#
+#   provides   stable names (redis-0 is ALWAYS the primary), a private volume per
+#              pod (the AOF data of that pod), ordered start (primary first), and a
+#              replacement pod that comes back as the same member with the same data
+#   does NOT   do replication (Redis does), or fail over to a replica when the
+#              primary dies (that needs Redis Sentinel or an operator)
+#
+# The readiness probe (`redis-cli ping`) makes sure the primary is really serving
+# before the next pod is started.
+#
+# Image: redis:8-alpine (a major-version tag, so it follows patch releases).
+#
+# EXPECT: pods redis-0, redis-1, redis-2 created one by one, all 1/1.
+# =============================================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: lab
+spec:
+  serviceName: redis
+  replicas: 3
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: redis
+        image: redis:8-alpine
+        command: ["sh", "/conf/start.sh"]     # replaces the image's entrypoint
+        ports:
+        - name: redis
+          containerPort: 6379
+        readinessProbe:
+          exec:
+            command: ["redis-cli", "ping"]
+          periodSeconds: 3
+        volumeMounts:
+        - name: conf
+          mountPath: /conf
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: conf
+        configMap:
+          name: redis-config
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi

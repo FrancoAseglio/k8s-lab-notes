@@ -1,0 +1,72 @@
+# =============================================================================
+# statefulset.yml  -  a StatefulSet with one volume per pod (used in lab steps 55-58)
+# =============================================================================
+# Used with:   kubectl apply -f statefulset.yml
+#
+# A StatefulSet is like a Deployment for applications that need an IDENTITY that
+# survives restarts. Three guarantees a Deployment doesn't give:
+#
+#   1. STABLE NAMES        pods are web-0, web-1, web-2 (ordinals), not random hashes,
+#                          and a re-created pod gets the same name back
+#   2. STABLE STORAGE      each pod gets its OWN PersistentVolumeClaim (from
+#                          volumeClaimTemplates) and always gets the SAME one back
+#   3. ORDERED OPERATIONS  created one at a time in order (0, 1, 2), each only after
+#                          the previous is Running and Ready; removed in reverse
+#
+# The app: a tiny web server (busybox httpd) that serves the pod's own name from
+# its volume (/data/index.html) and appends a line to /data/starts.log every time
+# the container starts, so you can SEE the data surviving restarts.
+#
+# EXPECT: 3 pods web-0..web-2, 3 claims www-web-0..www-web-2, STS READY 3/3.
+# =============================================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: web
+  namespace: lab
+spec:
+  serviceName: web                  # the headless Service (see service.yml)
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web
+
+  # What happens to the PVCs when the StatefulSet is deleted or scaled down.
+  # Retain (the default) keeps them: your data is safe by default.
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain             # Retain | Delete
+    whenScaled: Retain
+
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      terminationGracePeriodSeconds: 3    # busybox httpd ignores SIGTERM as PID 1: don't wait 30 s
+      containers:
+      - name: web
+        image: busybox:1.37
+        command: ["sh", "-c"]
+        # (`$(hostname)` is the shell's; Kubernetes only expands $(NAME) for variables it defines)
+        args:
+        - |
+          echo "$(hostname) started at $(date +%T)" >> /data/starts.log
+          hostname > /data/index.html
+          exec httpd -f -p 80 -h /data
+        ports:
+        - name: web
+          containerPort: 80
+        volumeMounts:
+        - name: www                 # must match the claim template name below
+          mountPath: /data
+
+  # One PVC per pod, named <template>-<statefulset>-<ordinal>: www-web-0, www-web-1...
+  # No storageClassName: the default class (kind's "standard") provisions each volume.
+  volumeClaimTemplates:
+  - metadata:
+      name: www
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi

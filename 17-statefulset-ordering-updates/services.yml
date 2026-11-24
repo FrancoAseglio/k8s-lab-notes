@@ -1,0 +1,35 @@
+# =============================================================================
+# services.yml  -  the headless Services for the two StatefulSets (lab steps 59-62)
+# =============================================================================
+# Used with:   kubectl apply -f services.yml
+#
+# One headless Service for each StatefulSet in this session ("ordered" and "par").
+# See the first session for what a headless Service is and why a StatefulSet needs one.
+#
+# EXPECT: Services ordered and par, both CLUSTER-IP None.
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: ordered
+  namespace: lab
+spec:
+  clusterIP: None
+  selector:
+    app: ordered
+  ports:
+  - name: web
+    port: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: par
+  namespace: lab
+spec:
+  clusterIP: None
+  selector:
+    app: par
+  ports:
+  - name: web
+    port: 80
