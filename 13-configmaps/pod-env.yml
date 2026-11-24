@@ -1,0 +1,54 @@
+# =============================================================================
+# pod-env.yml  -  ConfigMap values as environment variables (used in lab step 45)
+# =============================================================================
+# Used with:   kubectl apply -f pod-env.yml
+# NEEDS the ConfigMaps app-config and from-env from lab step 44.
+#
+# Two ways to inject ConfigMap data as environment variables:
+#
+#   env + configMapKeyRef   pick ONE key and (optionally) give the variable a
+#                           different name:  APP_MODE -> MODE
+#   envFrom + configMapRef  import EVERY key as a variable. `prefix` is added to
+#                           each name (here CFG_), which avoids name clashes.
+#                           Keys that are not valid variable names are skipped.
+#
+# The script also shows the TWO kinds of expansion:
+#   $(LOG_LEVEL)  Kubernetes' own syntax, replaced by the kubelet BEFORE the
+#                 container starts (works in `command` and `args`)
+#   $LOG_LEVEL    the shell's syntax, replaced when the script runs
+#
+# EXPECT: `kubectl logs env-demo` prints both lines with level=info mode=demo,
+#         then three CFG_ variables.
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: env-demo
+  namespace: lab
+spec:
+  containers:
+  - name: app
+    image: busybox:1.37
+    command: ["sh", "-c"]
+    args:
+    - |
+      echo "k8s-expanded:   level=$(LOG_LEVEL) mode=$(MODE)"
+      echo "shell-expanded: level=$LOG_LEVEL mode=$MODE"
+      echo "--- variables imported with envFrom (prefix CFG_):"
+      env | sort | grep '^CFG_'
+      sleep 86400
+    env:
+    - name: LOG_LEVEL
+      valueFrom:
+        configMapKeyRef:
+          name: app-config
+          key: LOG_LEVEL
+    - name: MODE                    # renamed: the key is APP_MODE
+      valueFrom:
+        configMapKeyRef:
+          name: app-config
+          key: APP_MODE
+    envFrom:
+    - prefix: CFG_
+      configMapRef:
+        name: from-env

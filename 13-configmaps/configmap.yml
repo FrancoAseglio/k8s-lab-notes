@@ -1,0 +1,37 @@
+# =============================================================================
+# configmap.yml  -  a ConfigMap written as YAML (used in lab step 44)
+# =============================================================================
+# Used with:   kubectl apply -f configmap.yml
+#
+# A ConfigMap holds non-confidential configuration as key/value pairs, kept
+# OUTSIDE the container image so the same image can run with different
+# settings (dev, test, prod) without being rebuilt.
+#
+# Facts worth knowing:
+#   - it is namespaced, and a pod can only use ConfigMaps of its own namespace
+#   - values are STRINGS: quote numbers and booleans ("8080", "true")
+#   - a key is a plain name (letters, digits, - _ .), not necessarily a valid
+#     environment variable name: "greeting.txt" is fine as a file name but
+#     can't be an env var
+#   - the whole object may not exceed 1 MiB (it lives in etcd)
+#   - for binary content there is a separate `binaryData` map (base64)
+#
+# This one has two kinds of keys: short values that suit environment variables
+# (LOG_LEVEL, APP_MODE) and file-like values (greeting.txt, app.properties,
+# a multi-line text written with `|`) that suit mounting as files.
+#
+# EXPECT: `kubectl get configmap app-config` shows DATA 4.
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: lab
+data:
+  LOG_LEVEL: "info"
+  APP_MODE: "demo"
+  greeting.txt: "hello from the ConfigMap"
+  app.properties: |
+    log.level=info
+    feature.beta=false
+    db.host=db.lab.svc

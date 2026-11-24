@@ -1,0 +1,29 @@
+# =============================================================================
+# encryption-aescbc-first.yml  -  encryption ACTIVE (used in lab step 53)
+# =============================================================================
+# Used with:   sed "s|__KEY__|$KEY|" encryption-aescbc-first.yml > enc/encryption-config.yaml
+#
+# Same two providers, swapped:
+#   - aescbc is FIRST: every Secret written from now on is encrypted with key1
+#   - identity is LAST: Secrets that are still plain in etcd (written before) can
+#     still be READ. Without it, the API server would fail to read them.
+#
+# Adopting encryption on a live cluster therefore takes three moves:
+#   1. put the encrypting provider first, keep identity last, restart the API server
+#   2. REWRITE every existing Secret so it gets encrypted (kubectl replace)
+#   3. (later) remove identity once nothing is plain any more
+#
+# The key (__KEY__) must be the SAME one as before: losing it means losing every
+# Secret that was encrypted with it.
+# =============================================================================
+apiVersion: apiserver.config.k8s.io/v1
+kind: EncryptionConfiguration
+resources:
+- resources:
+  - secrets
+  providers:
+  - aescbc:                 # FIRST: used to encrypt new writes
+      keys:
+      - name: key1
+        secret: __KEY__
+  - identity: {}            # LAST: lets the API server read old plain data

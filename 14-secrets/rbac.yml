@@ -1,0 +1,60 @@
+# =============================================================================
+# rbac.yml  -  who may read which Secret (used in lab step 50)
+# =============================================================================
+# Used with:   kubectl apply -f rbac.yml
+#
+# Secrets are protected by RBAC (role-based access control), not by encoding.
+# This file creates two ServiceAccounts (identities for pods or programs) and
+# lets only ONE of them read ONE Secret:
+#
+#   app-sa     may `get` the Secret named db-creds, nothing else
+#   other-sa   has no permissions at all
+#
+# A Role lists allowed verbs on resources inside a namespace; a RoleBinding
+# attaches it to a subject. `resourceNames` narrows a rule to specific objects.
+#
+# Important details:
+#   - `get`, `list` AND `watch` on Secrets all reveal the VALUES. `list` is as
+#     dangerous as `get`, and a wildcard (resources: ["*"]) includes Secrets.
+#   - `resourceNames` works with `get` but not with `list` of everything.
+#   - Anyone allowed to create PODS in a namespace can mount any Secret of that
+#     namespace, so "can create pods" is effectively "can read Secrets".
+#
+# EXPECT (lab step 50): app-sa can get db-creds; everything else is Forbidden.
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: app-sa
+  namespace: lab
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: other-sa
+  namespace: lab
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: read-db-creds
+  namespace: lab
+rules:
+- apiGroups: [""]               # "" = the core API group (Secrets live there)
+  resources: ["secrets"]
+  resourceNames: ["db-creds"]   # only this Secret
+  verbs: ["get"]                # only this verb
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: app-sa-reads-db-creds
+  namespace: lab
+subjects:
+- kind: ServiceAccount
+  name: app-sa
+  namespace: lab
+roleRef:
+  kind: Role
+  name: read-db-creds
+  apiGroup: rbac.authorization.k8s.io

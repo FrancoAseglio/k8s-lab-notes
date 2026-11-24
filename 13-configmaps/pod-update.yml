@@ -1,0 +1,50 @@
+# =============================================================================
+# pod-update.yml  -  what updates and what doesn't (used in lab step 47)
+# =============================================================================
+# Used with:   kubectl apply -f pod-update.yml
+# NEEDS the ConfigMap app-config from lab step 44/configmap.yml.
+#
+# One pod that consumes the SAME key (LOG_LEVEL) in three ways, and prints all
+# three every 5 seconds:
+#
+#   env      an environment variable           -> fixed when the container starts
+#   volume   a file in a mounted ConfigMap     -> refreshed by the kubelet (after a delay)
+#   subpath  the same file mounted with subPath -> fixed, never refreshed
+#
+# In the lab you change the ConfigMap and watch which of the three follows.
+#
+# EXPECT: `kubectl logs -f watcher` prints a line like
+#         12:00:00 env=info volume=info subpath=info
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: watcher
+  namespace: lab
+spec:
+  containers:
+  - name: app
+    image: busybox:1.37
+    command: ["sh", "-c"]
+    args:
+    - |
+      while true; do
+        echo "$(date +%T) env=$LOG_LEVEL volume=$(cat /etc/live/LOG_LEVEL) subpath=$(cat /etc/frozen/LOG_LEVEL)"
+        sleep 5
+      done
+    env:
+    - name: LOG_LEVEL
+      valueFrom:
+        configMapKeyRef:
+          name: app-config
+          key: LOG_LEVEL
+    volumeMounts:
+    - name: cfg
+      mountPath: /etc/live
+    - name: cfg
+      mountPath: /etc/frozen/LOG_LEVEL
+      subPath: LOG_LEVEL
+  volumes:
+  - name: cfg
+    configMap:
+      name: app-config

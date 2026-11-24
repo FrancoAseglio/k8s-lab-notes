@@ -1,0 +1,53 @@
+# =============================================================================
+# pod-files.yml  -  ConfigMap data as files (used in lab step 46)
+# =============================================================================
+# Used with:   kubectl apply -f pod-files.yml
+# NEEDS the ConfigMap app-config from lab step 44/configmap.yml.
+#
+# A ConfigMap can be mounted as a VOLUME: each key becomes a FILE whose content is
+# the value. Three variations in one pod:
+#
+#   /etc/config            the WHOLE ConfigMap: one file per key
+#   /etc/subset            only SELECTED keys (`items`), with a renamed path and a
+#                          custom file mode (0444)
+#   /etc/single/greeting.txt  ONE key mounted at an exact path with `subPath`
+#                          (it doesn't hide the other files of that directory)
+#
+# Caveats you will test in lab step 47:
+#   - the files in /etc/config and /etc/subset are UPDATED when the ConfigMap changes
+#   - the subPath file is NEVER updated (it's a plain bind mount of one file)
+#
+# EXPECT: `kubectl exec files-demo -- ls -la /etc/config` shows 4 files that are
+#         symbolic links into a hidden ..data directory.
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: files-demo
+  namespace: lab
+spec:
+  containers:
+  - name: app
+    image: busybox:1.37
+    command: ["sh", "-c", "sleep 86400"]
+    volumeMounts:
+    - name: all
+      mountPath: /etc/config
+      readOnly: true
+    - name: subset
+      mountPath: /etc/subset
+      readOnly: true
+    - name: all                         # same volume, mounted a second time
+      mountPath: /etc/single/greeting.txt
+      subPath: greeting.txt             # just this key
+  volumes:
+  - name: all
+    configMap:
+      name: app-config
+  - name: subset
+    configMap:
+      name: app-config
+      defaultMode: 0444                 # file permissions (octal)
+      items:
+      - key: app.properties             # only this key...
+        path: conf/settings.properties  # ...at this path inside the mount

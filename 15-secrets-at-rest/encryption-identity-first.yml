@@ -1,0 +1,32 @@
+# =============================================================================
+# encryption-identity-first.yml  -  encryption configured but NOT active (step 52)
+# =============================================================================
+# Used with:   sed "s|__KEY__|$KEY|" encryption-identity-first.yml > enc/encryption-config.yaml
+#
+# This is NOT a Kubernetes object: it is a file read by the API server at startup
+# (that's why it is mounted into the control-plane node, not `kubectl apply`'d).
+#
+# The API server tries providers IN ORDER:
+#   - to WRITE a Secret it uses the FIRST provider
+#   - to READ it back it tries each provider until one can decode the data
+#
+# `identity` means "no encryption": plain bytes. With identity FIRST, new Secrets
+# are stored in the clear, even though aescbc is listed second. This is the state
+# of every cluster before encryption at rest is adopted.
+#
+# __KEY__ is replaced by a random 32-byte key encoded in base64 (the lab shows
+# how to make one). AES-CBC with this key is used only to demonstrate the
+# mechanism; production clusters use a KMS provider so the key doesn't sit on
+# the same disk as the data.
+# =============================================================================
+apiVersion: apiserver.config.k8s.io/v1
+kind: EncryptionConfiguration
+resources:
+- resources:
+  - secrets
+  providers:
+  - identity: {}            # FIRST: written in the clear
+  - aescbc:
+      keys:
+      - name: key1
+        secret: __KEY__

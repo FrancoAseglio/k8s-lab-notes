@@ -1,0 +1,28 @@
+# =============================================================================
+# configmap-immutable.yml  -  an immutable ConfigMap (used in lab step 47)
+# =============================================================================
+# Used with:   kubectl apply -f configmap-immutable.yml
+#
+# `immutable: true` makes the data read-only for ever: any later change to
+# `data` is rejected, and the only way forward is to create a NEW object (for
+# example app-config-v2) and point the workload at it.
+#
+# Why bother?
+#   - it protects against accidental or malicious edits of a live configuration
+#   - the kubelet stops watching it, which lowers load on the API server in
+#     large clusters
+#   - it forces a clean, reviewable rollout: new name -> new pod template ->
+#     rolling update (the usual pattern: name = app-config-<hash or version>)
+# Immutability itself can't be undone: delete and re-create the object.
+#
+# EXPECT: `kubectl patch` on `data` fails with "field is immutable when
+#         `immutable` is set".
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config-immutable
+  namespace: lab
+immutable: true
+data:
+  LOG_LEVEL: "info"

@@ -1,0 +1,51 @@
+# =============================================================================
+# pod-env-missing.yml  -  what a missing key does (used in lab step 45)
+# =============================================================================
+# Used with:   kubectl apply -f pod-env-missing.yml
+#
+# Both pods reference a key that does not exist (NOPE) in app-config.
+#
+#   env-missing    the reference is REQUIRED (the default): the container can't
+#                  be created. Status CreateContainerConfigError, and the
+#                  events say the key could not be found.
+#   env-optional   `optional: true`: the pod starts anyway, without the variable.
+#
+# Lesson: a pod that depends on configuration stays stuck until it exists;
+# `optional` trades that safety for resilience. Use it deliberately.
+#
+# EXPECT: env-missing CreateContainerConfigError, env-optional Running.
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: env-missing
+  namespace: lab
+spec:
+  containers:
+  - name: app
+    image: busybox:1.37
+    command: ["sh", "-c", "echo NOPE=$NOPE; sleep 86400"]
+    env:
+    - name: NOPE
+      valueFrom:
+        configMapKeyRef:
+          name: app-config
+          key: NOPE
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: env-optional
+  namespace: lab
+spec:
+  containers:
+  - name: app
+    image: busybox:1.37
+    command: ["sh", "-c", "echo NOPE=[$NOPE]; sleep 86400"]
+    env:
+    - name: NOPE
+      valueFrom:
+        configMapKeyRef:
+          name: app-config
+          key: NOPE
+          optional: true

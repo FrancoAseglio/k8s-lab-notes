@@ -1,0 +1,32 @@
+# =============================================================================
+# cluster.yml  -  kind cluster definition (lab 1, step 1; also used to bootstrap later sessions)
+# =============================================================================
+# Used with:   kind create cluster --name lab-a --config cluster.yml
+#
+# kind ("Kubernetes IN Docker") runs every Kubernetes node as a Docker
+# container. This file describes how many nodes to create and how to expose
+# ports from those containers to your own machine.
+#
+# EXPECT: 3 containers (visible with `docker ps`) and 3 nodes in
+#         `kubectl get nodes`: 1 control-plane + 2 workers.
+# =============================================================================
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+
+nodes:
+# The control-plane node runs the API server, scheduler, controllers and etcd.
+# It is the "brain" of the cluster. kubectl talks to it.
+- role: control-plane
+  # Docker containers are isolated from your laptop's network. This maps a
+  # port INSIDE the node container to a port ON YOUR MACHINE, so that a
+  # NodePort Service on 30001 becomes reachable at http://localhost:30001.
+  # (Without this mapping you would need `kubectl port-forward` instead.)
+  # NOTE: this can only be set at cluster creation. To change it you must
+  #       delete and recreate the cluster.
+  extraPortMappings:
+  - containerPort: 30001   # port inside the node  (must match svc.yml nodePort)
+    hostPort: 30001        # port on your machine (must be free)
+
+# Worker nodes are where your application pods normally run.
+- role: worker
+- role: worker

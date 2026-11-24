@@ -1,0 +1,60 @@
+# =============================================================================
+# kind-encrypted.yml  -  a kind cluster whose API server can encrypt Secrets
+# =============================================================================
+# Used with (see lab step 52):
+#   sed "s|__ENC_DIR__|$PWD/enc|" kind-encrypted.yml > kind-encrypted.generated.yml
+#   kind create cluster --name secrets-a --config kind-encrypted.generated.yml
+#
+# By default the API server stores Secrets in etcd as plain bytes. Encryption at
+# rest is switched on by giving the API server an EncryptionConfiguration file
+# (--encryption-provider-config). This cluster:
+#
+#   1. mounts a directory of YOUR machine (the `enc` folder) into the control-plane
+#      node container at /etc/kubernetes/enc
+#   2. tells kubeadm to pass --encryption-provider-config=... to the API server
+#      and to mount that directory into the API server's pod
+#
+# The placeholder __ENC_DIR__ is replaced by the absolute path of the enc
+# folder (the sed command above), because kind needs an absolute host path.
+#
+# Two patches are given because kubeadm changed the format of `extraArgs`
+# (a map in v1beta3, a list of name/value pairs in v1beta4). kind applies the
+# one that matches the kubeadm version of your Kubernetes image and ignores the
+# other.
+#
+# Only a single control-plane node: encryption concerns the API server and etcd.
+# EXPECT: one node, secrets-a-control-plane.
+# =============================================================================
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  extraMounts:
+  - hostPath: __ENC_DIR__
+    containerPath: /etc/kubernetes/enc
+kubeadmConfigPatches:
+- |
+  kind: ClusterConfiguration
+  apiVersion: kubeadm.k8s.io/v1beta3
+  apiServer:
+    extraArgs:
+      encryption-provider-config: /etc/kubernetes/enc/encryption-config.yaml
+    extraVolumes:
+    - name: enc
+      hostPath: /etc/kubernetes/enc
+      mountPath: /etc/kubernetes/enc
+      readOnly: true
+      pathType: DirectoryOrCreate
+- |
+  kind: ClusterConfiguration
+  apiVersion: kubeadm.k8s.io/v1beta4
+  apiServer:
+    extraArgs:
+    - name: encryption-provider-config
+      value: /etc/kubernetes/enc/encryption-config.yaml
+    extraVolumes:
+    - name: enc
+      hostPath: /etc/kubernetes/enc
+      mountPath: /etc/kubernetes/enc
+      readOnly: true
+      pathType: DirectoryOrCreate
