@@ -1,0 +1,29 @@
+# =============================================================================
+# limitrange.yml  -  defaults and limits for containers (used in lab step 74)
+# =============================================================================
+# Used with:   kubectl apply -f limitrange.yml
+#
+# LimitRange is a BUILT-IN admission controller that does two jobs on every pod created in the
+# namespace:
+#   MUTATES    a container without requests/limits gets the defaultRequest/default values
+#   VALIDATES  a container whose values break max/min is rejected
+#
+# EXPECT: a pod without resources gets requests cpu 50m / memory 32Mi and limits cpu 100m /
+#         memory 64Mi; a pod asking for a 256Mi limit is refused (the maximum is 128Mi).
+# =============================================================================
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: container-limits
+  namespace: adm-demo
+spec:
+  limits:
+  - type: Container
+    defaultRequest:
+      cpu: 50m
+      memory: 32Mi
+    default:
+      cpu: 100m
+      memory: 64Mi
+    max:
+      memory: 128Mi

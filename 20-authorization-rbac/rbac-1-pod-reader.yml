@@ -1,0 +1,47 @@
+# =============================================================================
+# rbac-1-pod-reader.yml  -  a Role and a RoleBinding (used in lab step 70)
+# =============================================================================
+# Used with:   kubectl apply -f rbac-1-pod-reader.yml
+#
+# RBAC (role-based access control) is built from four objects:
+#   Role          a list of ALLOWED actions on resources, inside ONE namespace
+#   RoleBinding   attaches a Role to subjects (users, groups, ServiceAccounts)
+#   ClusterRole / ClusterRoleBinding   the same, cluster-wide
+#
+# There are only ALLOW rules: no "deny" and no ordering. A request is permitted if ANY
+# rule of ANY binding of the subject allows it; otherwise it is refused.
+#
+# A rule says WHAT may be done:
+#   apiGroups   the API group of the resource ("" = core: pods, secrets, services...;
+#               "apps": deployments, statefulsets...)
+#   resources   which resource types
+#   verbs       which actions: get, list, watch, create, update, patch, delete, ...
+#
+# This Role allows reading pods in namespace lab. The RoleBinding gives it to the user
+# alice (just a name: nothing needs to "exist" for a binding to be valid).
+#
+# EXPECT: `kubectl auth can-i list pods --as alice -n lab` answers yes; delete answers no.
+# =============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+  namespace: lab
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: alice-reads-pods
+  namespace: lab
+subjects:
+- kind: User
+  name: alice
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io

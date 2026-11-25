@@ -1,0 +1,19 @@
+# =============================================================================
+# rbac-editor-escalate.yml  -  the `escalate` verb (used in lab step 73)
+# =============================================================================
+# Used with:   kubectl apply -f rbac-editor-escalate.yml
+#
+# Adds the verb `escalate` on roles to bob's Role. With it, bob may create Roles that grant MORE
+# than he holds, so he can now hand out access to Secrets. That is why `escalate`, `bind` and
+# `impersonate` are among the most dangerous verbs in RBAC: grant them only to trusted admins.
+# EXPECT: bob can now apply role-secrets.yml.
+# =============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rbac-editor
+  namespace: lab
+rules:
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings"]
+  verbs: ["get", "list", "create", "update", "patch", "escalate"]

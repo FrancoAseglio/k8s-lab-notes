@@ -1,0 +1,63 @@
+# =============================================================================
+# vap-replicas.yml  -  a policy with PARAMETERS: max replicas (used in lab step 76)
+# =============================================================================
+# Used with:   kubectl apply -f vap-replicas.yml
+#
+# Hard-coding "3" in the expression would force you to edit the policy to change it. Instead the
+# policy takes a PARAMETER OBJECT (here a ConfigMap) and reads `params.data`:
+#   paramKind (policy)   the KIND of object that holds the parameters
+#   paramRef (binding)   WHICH object to use for this binding
+# Several bindings can reuse one policy with different parameters (strict in prod, loose in dev).
+# Changing the ConfigMap changes the limit at once, with no policy edit.
+#
+# `messageExpression` builds the message from the object and the parameters.
+#
+# Note `deployments/scale`: `kubectl scale` doesn't update the Deployment, it updates its SCALE
+# sub-resource, which is a different resource for matching. A rule listing only `deployments`
+# would be bypassed by `kubectl scale`. (Both objects have `spec.replicas`, so one expression
+# serves both.)
+#
+# EXPECT: Deployments in vap-demo are refused above `maxReplicas` (3 here).
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: replica-limits
+  namespace: vap-demo
+data:
+  maxReplicas: "3"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: max-replicas
+spec:
+  failurePolicy: Fail
+  paramKind:
+    apiVersion: v1
+    kind: ConfigMap
+  matchConstraints:
+    resourceRules:
+    - apiGroups: ["apps"]
+      apiVersions: ["v1"]
+      operations: ["CREATE", "UPDATE"]
+      resources: ["deployments", "deployments/scale"]   # sub-resources are matched SEPARATELY
+  validations:
+  - expression: "object.spec.replicas <= int(params.data.maxReplicas)"
+    messageExpression: "'replicas must be at most ' + params.data.maxReplicas + ' (requested ' + string(object.spec.replicas) + ')'"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: max-replicas-binding
+spec:
+  policyName: max-replicas
+  validationActions: [Deny]
+  paramRef:
+    name: replica-limits
+    namespace: vap-demo
+    parameterNotFoundAction: Deny     # no parameter object -> refuse (fail closed)
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        policy: enforced

@@ -1,0 +1,17 @@
+# =============================================================================
+# quota.yml  -  a ResourceQuota (used in lab step 74)
+# =============================================================================
+# Used with:   kubectl apply -f quota.yml
+#
+# ResourceQuota is another BUILT-IN admission controller (a validating one): it refuses any
+# request that would take the namespace over its total. Here: at most 2 pods.
+# EXPECT: the third pod is refused with an "exceeded quota" message.
+# =============================================================================
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: pods-quota
+  namespace: adm-demo
+spec:
+  hard:
+    pods: "2"

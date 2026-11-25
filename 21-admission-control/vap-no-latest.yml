@@ -1,0 +1,51 @@
+# =============================================================================
+# vap-no-latest.yml  -  a ValidatingAdmissionPolicy: no ":latest" images (step 76)
+# =============================================================================
+# Used with:   kubectl apply -f vap-no-latest.yml
+#
+# A ValidatingAdmissionPolicy (VAP) is a rule evaluated INSIDE the API server, written in CEL
+# (Common Expression Language). No webhook server to run. Two objects:
+#   ValidatingAdmissionPolicy          WHAT is checked (resources + CEL expressions)
+#   ValidatingAdmissionPolicyBinding   WHERE and HOW it applies (namespaces, and the action)
+# Nothing happens until a binding exists.
+#
+# This policy: every container image of a Pod must have an explicit tag that isn't `latest`.
+# `object` is the incoming object.
+#   c.image.matches('.*:[^/:]+$')   the image ends with ":something" (a tag or a digest)
+#   !c.image.endsWith(':latest')    and that something isn't "latest"
+# (A simplification: it ignores initContainers.)
+#
+# validationActions in the binding decide the consequence:
+#   Deny  reject   |   Warn  allow but warn the client   |   Audit  allow, record in the audit log
+#   (Deny and Warn cannot be combined)
+#
+# EXPECT: pods in namespaces labelled policy=enforced are refused if an image is untagged or uses
+#         :latest; other namespaces are unaffected.
+# =============================================================================
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: no-latest-tag
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [""]
+      apiVersions: ["v1"]
+      operations: ["CREATE", "UPDATE"]
+      resources: ["pods"]
+  validations:
+  - expression: "object.spec.containers.all(c, c.image.matches('.*:[^/:]+$') && !c.image.endsWith(':latest'))"
+    message: "every container image must have an explicit tag other than :latest"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: no-latest-tag-binding
+spec:
+  policyName: no-latest-tag
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        policy: enforced

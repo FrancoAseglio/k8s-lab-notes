@@ -1,0 +1,52 @@
+# =============================================================================
+# namespaces.yml  -  the namespaces for this session (used in lab steps 74-78)
+# =============================================================================
+# Used with:   kubectl apply -f namespaces.yml
+#
+# adm-demo        built-in admission controllers: LimitRange and ResourceQuota (step 74)
+# psa-baseline    Pod Security Admission: ENFORCE "baseline" (step 75)
+# psa-restricted  Pod Security Admission: ENFORCE and WARN "restricted" (step 75)
+# psa-warn        Pod Security Admission: only WARN/AUDIT "restricted", enforce nothing (step 75)
+# vap-demo        label policy=enforced: where our admission POLICIES apply (steps 76-78)
+#
+# Pod Security Admission is configured purely by LABELS on the namespace:
+#   pod-security.kubernetes.io/<mode>: <level>
+#     mode   enforce (reject) | warn (allow, tell the user) | audit (allow, log it)
+#     level  privileged (no limits) | baseline (blocks known escalations)
+#            | restricted (current hardening best practice)
+# EXPECT: five namespaces; `kubectl get ns --show-labels` shows the labels.
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: adm-demo
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: psa-baseline
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: psa-restricted
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted      # also warn: this is what covers Deployments
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: psa-warn
+  labels:
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vap-demo
+  labels:
+    policy: enforced

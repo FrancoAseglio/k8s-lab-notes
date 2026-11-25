@@ -1,0 +1,28 @@
+# =============================================================================
+# sa-api.yml  -  a pod that talks to the API as a ServiceAccount (lab step 73)
+# =============================================================================
+# Used with:   kubectl apply -f sa-api.yml
+#
+# The pod runs as the ServiceAccount app-sa, so everything it does against the API server is
+# authorized as  system:serviceaccount:lab:app-sa. The lab calls the API from inside it with
+# curl, first without permissions (403), then with a Role (200).
+# EXPECT: api-client Running.
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: app-sa
+  namespace: lab
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: api-client
+  namespace: lab
+spec:
+  serviceAccountName: app-sa
+  terminationGracePeriodSeconds: 1
+  containers:
+  - name: curl
+    image: curlimages/curl:8.14.1
+    command: ["sleep", "86400"]

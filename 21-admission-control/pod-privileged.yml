@@ -1,0 +1,19 @@
+# =============================================================================
+# pod-privileged.yml  -  a privileged container (used in lab step 75)
+# =============================================================================
+# Used with:   kubectl apply -f pod-privileged.yml -n <namespace>
+# `privileged: true` gives the container nearly all the powers of the node's root user.
+# Forbidden by BOTH the baseline and the restricted Pod Security standards.
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: priv
+spec:
+  terminationGracePeriodSeconds: 1
+  containers:
+  - name: busybox
+    image: busybox:1.37
+    command: ["sleep", "86400"]
+    securityContext:
+      privileged: true

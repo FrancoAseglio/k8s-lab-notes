@@ -1,0 +1,20 @@
+# =============================================================================
+# pod-big.yml  -  a pod that breaks the LimitRange (used in lab step 74)
+# =============================================================================
+# Used with:   kubectl apply -f pod-big.yml -n adm-demo
+# Asks for a 256Mi memory limit; the LimitRange allows at most 128Mi per container.
+# EXPECT: Forbidden, naming the maximum memory usage per container.
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: big
+spec:
+  terminationGracePeriodSeconds: 1
+  containers:
+  - name: busybox
+    image: busybox:1.37
+    command: ["sleep", "86400"]
+    resources:
+      limits:
+        memory: 256Mi

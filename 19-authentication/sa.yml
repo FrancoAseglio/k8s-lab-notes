@@ -1,0 +1,51 @@
+# =============================================================================
+# sa.yml  -  a ServiceAccount and two pods (used in lab step 69)
+# =============================================================================
+# Used with:   kubectl apply -f sa.yml
+#
+# Humans authenticate with certificates (or an external identity provider). PROGRAMS
+# running in the cluster authenticate as a ServiceAccount: a namespaced identity
+#       system:serviceaccount:<namespace>:<name>
+# with a token that Kubernetes mounts into the pod automatically.
+#
+#   app-sa      the ServiceAccount (it has NO permissions yet: see the RBAC session)
+#   api-client  a pod that runs AS app-sa, with a short-lived token mounted at
+#               /var/run/secrets/kubernetes.io/serviceaccount/token
+#   no-token    a pod that opts out (automountServiceAccountToken: false) and gets nothing.
+#               Pods that never call the API should do this.
+#
+# EXPECT: both pods Running. `kubectl exec api-client -- ls /var/run/secrets/kubernetes.io/serviceaccount`
+#         lists ca.crt, namespace and token; the same command on no-token fails.
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: app-sa
+  namespace: lab
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: api-client
+  namespace: lab
+spec:
+  serviceAccountName: app-sa
+  terminationGracePeriodSeconds: 1
+  containers:
+  - name: curl
+    image: curlimages/curl:8.14.1
+    command: ["sleep", "86400"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: no-token
+  namespace: lab
+spec:
+  serviceAccountName: app-sa
+  automountServiceAccountToken: false     # do not mount an API token
+  terminationGracePeriodSeconds: 1
+  containers:
+  - name: curl
+    image: curlimages/curl:8.14.1
+    command: ["sleep", "86400"]

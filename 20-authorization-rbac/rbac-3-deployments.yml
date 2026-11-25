@@ -1,0 +1,35 @@
+# =============================================================================
+# rbac-3-deployments.yml  -  API groups (used in lab step 71)
+# =============================================================================
+# Used with:   kubectl apply -f rbac-3-deployments.yml
+#
+# Resources belong to API groups, and a rule only covers the groups it lists:
+#   ""      (core)   pods, services, configmaps, secrets, namespaces, nodes...
+#   apps             deployments, replicasets, statefulsets, daemonsets
+#   batch            jobs, cronjobs
+#   rbac.authorization.k8s.io   roles, rolebindings...
+# `kubectl api-resources -o wide` lists the group and allowed verbs of every resource.
+#
+# Granting "pods" does nothing for "deployments": different group. Forgetting the group
+# is the most common RBAC mistake. This version adds a rule for deployments in `apps`.
+#
+# EXPECT: alice can now list deployments (the list is empty, but allowed).
+# =============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+  namespace: lab
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get"]
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch"]

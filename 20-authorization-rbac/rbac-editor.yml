@@ -1,0 +1,38 @@
+# =============================================================================
+# rbac-editor.yml  -  a user who may manage Roles but holds no Secret access (step 73)
+# =============================================================================
+# Used with:   kubectl apply -f rbac-editor.yml
+#
+# bob may create and update Roles and RoleBindings in namespace lab. He has no permission at
+# all on Secrets. The lab then has him try to create a Role that GRANTS access to Secrets, to
+# show the API server's PRIVILEGE ESCALATION PREVENTION:
+#   - a user can only create or update a Role if they already hold every permission it grants
+#     (or they hold the special verb `escalate` on roles)
+#   - a user can only bind a Role if they hold its permissions (or the verb `bind`)
+# Without that rule, anyone allowed to write Roles could just give themselves cluster-admin.
+#
+# EXPECT: bob can apply Roles that grant what he holds; he is refused for anything more.
+# =============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rbac-editor
+  namespace: lab
+rules:
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings"]
+  verbs: ["get", "list", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: bob-edits-rbac
+  namespace: lab
+subjects:
+- kind: User
+  name: bob
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: rbac-editor
+  apiGroup: rbac.authorization.k8s.io

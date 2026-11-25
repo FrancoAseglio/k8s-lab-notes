@@ -1,0 +1,73 @@
+# =============================================================================
+# cluster-roles.yml  -  ClusterRoles, a ClusterRoleBinding, aggregation (lab step 72)
+# =============================================================================
+# Used with:   kubectl apply -f cluster-roles.yml
+#
+# 1. node-reader + ops-read-nodes
+#    Some resources are CLUSTER-SCOPED (nodes, namespaces, persistentvolumes): a namespaced
+#    Role can't cover them. A ClusterRole holds the rules; a ClusterRoleBinding grants them
+#    everywhere. Here to the GROUP ops-team (a group is just a name, from a certificate's O
+#    field or from an identity provider).
+#
+# 2. all-readers (+ reader-pods and reader-configmaps)
+#    AGGREGATION: a ClusterRole with an `aggregationRule` has no rules of its own: Kubernetes
+#    fills it in with the rules of every ClusterRole carrying the matching label. That's how the
+#    built-in view/edit/admin roles pick up rules for new resource types (for example from CRDs)
+#    without anyone editing them.
+#
+# EXPECT: `kubectl get clusterrole all-readers -o yaml` shows rules for pods AND configmaps
+#         that you never wrote into it.
+# =============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: node-reader
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ops-read-nodes
+subjects:
+- kind: Group
+  name: ops-team
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: node-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: reader-pods
+  labels:
+    lab/aggregate-to: all-readers          # the label the aggregator selects on
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: reader-configmaps
+  labels:
+    lab/aggregate-to: all-readers
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: all-readers
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      lab/aggregate-to: all-readers
+rules: []                                  # filled in by the controller

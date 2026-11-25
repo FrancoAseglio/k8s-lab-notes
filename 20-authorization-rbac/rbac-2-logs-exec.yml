@@ -1,0 +1,31 @@
+# =============================================================================
+# rbac-2-logs-exec.yml  -  sub-resources: logs and exec (used in lab step 71)
+# =============================================================================
+# Used with:   kubectl apply -f rbac-2-logs-exec.yml
+#
+# Replaces the rules of the same Role (pod-reader) with a longer list.
+#
+# Some actions are separate SUB-RESOURCES with their own permission:
+#   pods/log    read container logs         verb: get
+#   pods/exec   run a command in a pod      verb: create   (!)
+# Being able to `get` pods does NOT include them. `kubectl exec` needs BOTH `get` on pods
+# and `create` on pods/exec. Exec-ing into a pod gives you everything that pod can see: its
+# environment, its mounted Secrets, its network. Treat pods/exec as a very powerful permission.
+#
+# EXPECT: alice can now read web's logs and run a command in it.
+# =============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+  namespace: lab
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get"]
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create"]

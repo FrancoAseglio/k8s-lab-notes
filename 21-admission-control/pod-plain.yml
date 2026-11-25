@@ -1,0 +1,20 @@
+# =============================================================================
+# pod-plain.yml  -  a plain pod, written with the bare minimum (steps 74-75)
+# =============================================================================
+# Used with:   kubectl apply -f pod-plain.yml -n <namespace>
+#
+# No resources, no ServiceAccount, no securityContext. Whatever the API server stores beyond
+# this file was ADDED by admission controllers (mutation): compare it with
+# `kubectl apply --dry-run=server -o yaml`.
+# It runs as root with default privileges: fine for "baseline", not for "restricted" (step 75).
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: plain
+spec:
+  terminationGracePeriodSeconds: 1
+  containers:
+  - name: busybox
+    image: busybox:1.37
+    command: ["sleep", "86400"]

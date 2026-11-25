@@ -1,0 +1,32 @@
+# =============================================================================
+# pod-compliant.yml  -  a pod that satisfies the "restricted" standard (step 75)
+# =============================================================================
+# Used with:   kubectl apply -f pod-compliant.yml -n psa-restricted
+#
+# The "restricted" level needs ALL of this:
+#   - runAsNonRoot: true (and a non-root user)
+#   - allowPrivilegeEscalation: false
+#   - capabilities dropped: ALL
+#   - a seccomp profile (RuntimeDefault) at pod or container level
+# Compare with pod-plain.yml: this is the shape of a hardened workload.
+# EXPECT: created without warnings and Running.
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: compliant
+spec:
+  terminationGracePeriodSeconds: 1
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - name: busybox
+    image: busybox:1.37
+    command: ["sleep", "86400"]
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]

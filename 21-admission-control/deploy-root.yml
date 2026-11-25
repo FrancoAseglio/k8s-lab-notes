@@ -1,0 +1,28 @@
+# =============================================================================
+# deploy-root.yml  -  a Deployment whose pods break "restricted" (used in step 75)
+# =============================================================================
+# Used with:   kubectl apply -f deploy-root.yml -n psa-restricted
+#
+# Pod Security Admission judges PODS, not Deployments. The Deployment object is accepted (with a
+# warning, thanks to the `warn` label), but its ReplicaSet's attempts to create pods are refused:
+# the Deployment shows 0/1 and the reason is in the ReplicaSet's events.
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: root-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: root-app
+  template:
+    metadata:
+      labels:
+        app: root-app
+    spec:
+      terminationGracePeriodSeconds: 1
+      containers:
+      - name: busybox
+        image: busybox:1.37
+        command: ["sleep", "86400"]

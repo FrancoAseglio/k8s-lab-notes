@@ -1,0 +1,37 @@
+# =============================================================================
+# csr-template.yml  -  a CertificateSigningRequest for the user "alice" (step 67)
+# =============================================================================
+# Used with (see lab step 67):
+#   sed "s|__CSR__|$(base64 < alice.csr | tr -d '\n')|" csr-template.yml > csr.generated.yml
+#   kubectl apply -f csr.generated.yml
+#
+# Kubernetes has NO "user" objects. A user is whatever name appears in a credential the
+# API server trusts. The usual credential is an X.509 client certificate signed by the
+# cluster's own CA:
+#       CN (common name)  -> the USER name           (here: alice)
+#       O  (organization) -> the GROUP name(s)       (here: dev-team)
+#
+# You don't need the CA's private key to get one: you generate your own key pair, put the
+# public half in a signing request (alice.csr), and a cluster admin APPROVES the request;
+# the controller manager then signs it with the CA.
+#
+# `__CSR__` is replaced by the base64-encoded request (the sed command above).
+#
+#   signerName  kubernetes.io/kube-apiserver-client: the built-in signer for certificates
+#               used to authenticate to the API server
+#   usages      must be exactly `client auth` for that signer
+#   expirationSeconds  how long the certificate is valid (minimum 600). Keep it SHORT:
+#               a certificate cannot be revoked, only allowed to expire.
+#
+# EXPECT: `kubectl get csr` shows alice Pending, then Approved,Issued once you approve it.
+# =============================================================================
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+  name: alice
+spec:
+  request: __CSR__
+  signerName: kubernetes.io/kube-apiserver-client
+  expirationSeconds: 3600
+  usages:
+  - client auth

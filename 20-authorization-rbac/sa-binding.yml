@@ -1,0 +1,34 @@
+# =============================================================================
+# sa-binding.yml  -  give the ServiceAccount permission to list pods (lab step 73)
+# =============================================================================
+# Used with:   kubectl apply -f sa-binding.yml
+#
+# A ServiceAccount is a subject like any other. Note `kind: ServiceAccount` and the `namespace`
+# of the subject: ServiceAccounts are namespaced, users and groups are not.
+# Least privilege: read pods, in this namespace only. Nothing else.
+#
+# EXPECT: the in-pod request for the pod list now returns HTTP 200; other namespaces stay 403.
+# =============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-lister
+  namespace: lab
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: app-sa-lists-pods
+  namespace: lab
+subjects:
+- kind: ServiceAccount
+  name: app-sa
+  namespace: lab
+roleRef:
+  kind: Role
+  name: pod-lister
+  apiGroup: rbac.authorization.k8s.io
